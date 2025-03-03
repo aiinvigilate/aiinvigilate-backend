@@ -3,101 +3,24 @@ import crypto from 'crypto';
 import jwt from "jsonwebtoken";
 import prisma from "../lib/prisma.js";
 import { $Enums } from "@prisma/client";
-import {sendMail} from "../lib/nodemailer.js";
-import { welcomeTemplate } from "../lib/emailTemplate.js";
 
 
-// create logout function
-export const logout = async (req, res) => {
-  res.clearCookie("token").json({ message: "Logged out!" });
-};
 
-
-export const register = async (req, res) => {
-  const {
-    name,
-    surname,
-    gender,
-    email,
-    password,
-    idNumber,
-    role,
-    courseId, // courseId passed from frontend
-  } = req.body;
-
+export const getAllCourses = async (req, res) => {
   try {
-    // Validate mandatory fields
-    if (!name || !surname || !gender || !email || !password || !idNumber || !role) {
-      return res.status(400).json({
-        message: "Name, surname, gender, email, password, ID number, and role are required!",
+    const courses = await prisma.course.findMany();
+    res
+      .status(201)
+      .json({
+        courses: courses,
+        message: "Courses fetched successfully",
       });
-    }
 
-    // Check if email is already taken
-    const existingUser = await prisma.user.findUnique({
-      where: {
-        email: email,
-      },
-    });
-
-    if (existingUser && !existingUser.verified) {
-      // If user exists but is unverified, delete and re-register
-      await prisma.user.delete({
-        where: {
-          email: email,
-        },
-      });
-    }
-
-    // Check if South African ID number is already taken
-    const existingUserByIdNumber = await prisma.user.findUnique({
-      where: {
-        idNumber: idNumber,
-      },
-    });
-
-    if (existingUserByIdNumber) {
-      return res.status(400).json({
-        message: "A user with this ID number already exists!",
-      });
-    }
-
-    // Hash the password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationLink = `${process.env.BASE_URL}/auth/verify-email?token=${verificationToken}`;
-
-    // Send welcome email with verification link
-    const emailHtml = welcomeTemplate(verificationLink);
-    await sendMail(email, 'Welcome to Our Service - Please Verify Your Email', '', emailHtml);
-
-    // Create new user in the database
-    const newUser = await prisma.user.create({
-      data: {
-        name,
-        surname,
-        gender,
-        email,
-        password: hashedPassword,
-        idNumber,
-        role,
-        courseId, // Connect the user to the course
-        verificationToken
-      },
-    });
-
-    // Respond with success
-    res.status(201).json({
-      message: "User created successfully",
-      user: newUser,
-    });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Failed to create user!" });
+    res.status(500).json({ message: "  " });
   }
 };
-
 
 export const registerOfficer = async (req, res) => {
   const {
@@ -172,27 +95,18 @@ export const registerOfficer = async (req, res) => {
 
 export const verifyEmail = async (req, res) => {
   const { token } = req.query;
-
-  if (!token) {
-    return res.status(400).json({ message: "Token is required." });
-  }
-
-  console.log(token);
-  
-
   try {
     const user = await prisma.user.findUnique({
-      where: { verificationToken: token },
+      where: {
+        verificationToken: token,
+      },
     });
-
-    console.log(user);
-    
 
     if (!user) {
       return res.status(400).json({ message: "Invalid or expired token." });
     }
 
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         verified: true,
@@ -206,7 +120,6 @@ export const verifyEmail = async (req, res) => {
     res.status(500).json({ message: "Failed to verify email." });
   }
 };
-
 
 // Request Password Reset
 export const requestPasswordReset = async (req, res) => {

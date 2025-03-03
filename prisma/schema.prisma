@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,30 +7,39 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Gender {
+  male
+  female
+  other
+}
+
+enum Role {
+  student
+  lecturer
+  admin
+}
 
 model User {
-  id              Int       @id @default(autoincrement())
-  email           String    @unique
-  password        String
-  southAfricanId  String    @unique
-  role            Role
-  cases           Case[]    @relation("UserCases")
-  complaints      Complaint[]
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  verified        Boolean   @default(false)
-  verificationToken String? @unique
-  Complaint       Complaint[] @relation("UserComplaints")
-  ClosureRequest  ClosureRequest[]
-  profilePicture  String?    
-  fullName        String?   
-  dateOfBirth     DateTime? 
-  province        String?    
-  township        String?  
+  id                Int       @id @default(autoincrement())
+  name              String
+  surname           String
+  gender            Gender
+  email             String    @unique
+  idNumber          String    @unique
+  password          String
+  role              Role
+  courseId          Int?      // single courseId field
+  course            Course?   @relation(fields: [courseId], references: [id]) // Relationship with Course
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  resetTokens       ResetPasswordToken[]
+  tests             Test[]    @relation("TestCreator") // Tests created by lecturers
+  testResults       TestResult[] // Results for students
 
-
-  resetPasswordToken ResetPasswordToken?
+  verificationToken String?   @unique   // New field for email verification token
+  verified          Boolean   @default(false)  // New field to track email verification status
 }
+
 
 model ResetPasswordToken {
   id         Int      @id @default(autoincrement())
@@ -47,141 +50,56 @@ model ResetPasswordToken {
   createdAt  DateTime @default(now())
 }
 
-
-
-enum Role {
-  ADMIN
-  OFFICER
-  PUBLIC_USER
-}
-
-model Case {
-  id               Int       @id @default(autoincrement())
-  title            String
-  description      String
-  location         String
-  date             DateTime @default(now())
-  status           CaseStatus
-  category         Category
-  createdBy        User      @relation("UserCases", fields: [createdById], references: [id])
-  createdById      Int
-  officerAssigned  Officer?  @relation(fields: [officerAssignedId], references: [id])
-  officerAssignedId Int?
-  documents        CaseDocument[]
-  feedback         Feedback[]
-  closureRequest   ClosureRequest?
-  closedBy         Officer?  @relation("OfficerClosedCases", fields: [closedById], references: [id])
-  closedById       Int?
-  closedAt         DateTime?
-  updatedAt        DateTime  @updatedAt
-
-  Officer Officer[] @relation("OfficerCases")
-
-  Task Task[]
-}
-
-enum CaseStatus {
-  PENDING
-  IN_PROGRESS
-  RESOLVED
-  CLOSED_REQUESTED
-  CLOSED
-}
-
-enum Category {
-  THEFT
-  ACCIDENT
-  MISCONDUCT
-  OTHER
-}
-
-model Complaint {
-  id              Int       @id @default(autoincrement())
-  officerId       Int
-  officer         Officer   @relation(fields: [officerId], references: [id])
-  description     String
-  evidence        String[]
-  anonymous       Boolean   @default(false)
-  location        String
-  date            DateTime
-  time            DateTime
-  involvedParties String
-  createdBy       User      @relation("UserComplaints", fields: [createdById], references: [id])
-  createdById     Int
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
+model Course {
+  id         Int       @id @default(autoincrement())
+  name       String
+  modules    Module[]
   User User[]
 }
 
-model Officer {
-  id              Int       @id @default(autoincrement())
-  name            String
-  badgeNumber     String    @unique
-  email           String    @unique
-  casesAssigned   Case[]    @relation("OfficerCases")
-  casesClosed     Case[]    @relation("OfficerClosedCases")
-  complaintsFiled Complaint[]
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  Case Case[]
-
-  ClosureRequest ClosureRequest[]
+model Module {
+  id                Int      @id @default(autoincrement())
+  code              String   @unique
+  name              String
+  credits           Int
+  completionStatus  String   @default("upcoming")
+  grade             String? 
+  courseId          Int
+  course            Course   @relation(fields: [courseId], references: [id])
+  tests             Test[]  
 }
 
-model CaseDocument {
+model Test {
+  id          Int        @id @default(autoincrement())
+  name        String
+  description String
+  duration    Int        
+  dueDate     DateTime
+  status      String     @default("upcoming") 
+  moduleId    Int
+  module      Module     @relation(fields: [moduleId], references: [id])
+  questions   Question[] 
+  creatorId   Int
+  creator     User       @relation("TestCreator", fields: [creatorId], references: [id])
+  testResults TestResult[] 
+}
+
+model Question {
   id        Int      @id @default(autoincrement())
-  caseId    Int
-  case      Case     @relation(fields: [caseId], references: [id])
-  document  String   // URL or file path to the document
-  createdAt DateTime @default(now())
+  text      String
+  type      String   @default("multiple-choice") 
+  options   String[] 
+  answer    String  
+  testId    Int
+  test      Test     @relation(fields: [testId], references: [id])
 }
 
-model Feedback {
+model TestResult {
   id        Int      @id @default(autoincrement())
-  caseId    Int
-  case      Case     @relation(fields: [caseId], references: [id])
-  rating    Int      // 1-5 scale
-  comment   String?
-  createdAt DateTime @default(now())
-}
-
-model Task {
-  id        Int      @id @default(autoincrement())
-  caseId    Int
-  case      Case     @relation(fields: [caseId], references: [id])
-  deadline  DateTime
-  completed Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model SystemSetting {
-  id      Int      @id @default(autoincrement())
-  setting String
-  value   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model AuditLog {
-  id        Int      @id @default(autoincrement())
-  action    String
-  performedBy String
-  timestamp DateTime @default(now())
-  details   String?
-}
-
-model ClosureRequest {
-  id        Int      @id @default(autoincrement())
-  caseId    Int @unique
-  case      Case     @relation(fields: [caseId], references: [id])
-  requestedBy User   @relation(fields: [requestedById], references: [id])
-  requestedById Int
-  reason    String
-  requestedAt DateTime @default(now())
-  processedBy Officer? @relation(fields: [processedById], references: [id])
-  processedById Int?
-  processedAt DateTime?
+  score     Float
+  submittedAt DateTime @default(now())
+  testId    Int
+  test      Test     @relation(fields: [testId], references: [id])
+  studentId Int
+  student   User     @relation(fields: [studentId], references: [id])
 }
