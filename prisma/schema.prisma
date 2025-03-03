@@ -1,0 +1,187 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id              Int       @id @default(autoincrement())
+  email           String    @unique
+  password        String
+  southAfricanId  String    @unique
+  role            Role
+  cases           Case[]    @relation("UserCases")
+  complaints      Complaint[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  verified        Boolean   @default(false)
+  verificationToken String? @unique
+  Complaint       Complaint[] @relation("UserComplaints")
+  ClosureRequest  ClosureRequest[]
+  profilePicture  String?    
+  fullName        String?   
+  dateOfBirth     DateTime? 
+  province        String?    
+  township        String?  
+
+
+  resetPasswordToken ResetPasswordToken?
+}
+
+model ResetPasswordToken {
+  id         Int      @id @default(autoincrement())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int      @unique
+  token      String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+}
+
+
+
+enum Role {
+  ADMIN
+  OFFICER
+  PUBLIC_USER
+}
+
+model Case {
+  id               Int       @id @default(autoincrement())
+  title            String
+  description      String
+  location         String
+  date             DateTime @default(now())
+  status           CaseStatus
+  category         Category
+  createdBy        User      @relation("UserCases", fields: [createdById], references: [id])
+  createdById      Int
+  officerAssigned  Officer?  @relation(fields: [officerAssignedId], references: [id])
+  officerAssignedId Int?
+  documents        CaseDocument[]
+  feedback         Feedback[]
+  closureRequest   ClosureRequest?
+  closedBy         Officer?  @relation("OfficerClosedCases", fields: [closedById], references: [id])
+  closedById       Int?
+  closedAt         DateTime?
+  updatedAt        DateTime  @updatedAt
+
+  Officer Officer[] @relation("OfficerCases")
+
+  Task Task[]
+}
+
+enum CaseStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+  CLOSED_REQUESTED
+  CLOSED
+}
+
+enum Category {
+  THEFT
+  ACCIDENT
+  MISCONDUCT
+  OTHER
+}
+
+model Complaint {
+  id              Int       @id @default(autoincrement())
+  officerId       Int
+  officer         Officer   @relation(fields: [officerId], references: [id])
+  description     String
+  evidence        String[]
+  anonymous       Boolean   @default(false)
+  location        String
+  date            DateTime
+  time            DateTime
+  involvedParties String
+  createdBy       User      @relation("UserComplaints", fields: [createdById], references: [id])
+  createdById     Int
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  User User[]
+}
+
+model Officer {
+  id              Int       @id @default(autoincrement())
+  name            String
+  badgeNumber     String    @unique
+  email           String    @unique
+  casesAssigned   Case[]    @relation("OfficerCases")
+  casesClosed     Case[]    @relation("OfficerClosedCases")
+  complaintsFiled Complaint[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  Case Case[]
+
+  ClosureRequest ClosureRequest[]
+}
+
+model CaseDocument {
+  id        Int      @id @default(autoincrement())
+  caseId    Int
+  case      Case     @relation(fields: [caseId], references: [id])
+  document  String   // URL or file path to the document
+  createdAt DateTime @default(now())
+}
+
+model Feedback {
+  id        Int      @id @default(autoincrement())
+  caseId    Int
+  case      Case     @relation(fields: [caseId], references: [id])
+  rating    Int      // 1-5 scale
+  comment   String?
+  createdAt DateTime @default(now())
+}
+
+model Task {
+  id        Int      @id @default(autoincrement())
+  caseId    Int
+  case      Case     @relation(fields: [caseId], references: [id])
+  deadline  DateTime
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SystemSetting {
+  id      Int      @id @default(autoincrement())
+  setting String
+  value   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  action    String
+  performedBy String
+  timestamp DateTime @default(now())
+  details   String?
+}
+
+model ClosureRequest {
+  id        Int      @id @default(autoincrement())
+  caseId    Int @unique
+  case      Case     @relation(fields: [caseId], references: [id])
+  requestedBy User   @relation(fields: [requestedById], references: [id])
+  requestedById Int
+  reason    String
+  requestedAt DateTime @default(now())
+  processedBy Officer? @relation(fields: [processedById], references: [id])
+  processedById Int?
+  processedAt DateTime?
+}
