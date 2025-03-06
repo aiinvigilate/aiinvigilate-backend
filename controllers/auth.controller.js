@@ -4,13 +4,57 @@ import jwt from "jsonwebtoken";
 import prisma from "../lib/prisma.js";
 import { $Enums } from "@prisma/client";
 import {sendMail} from "../lib/nodemailer.js";
-import { welcomeTemplate } from "../lib/emailTemplate.js";
+import { passwordChangeTemplate, welcomeTemplate } from "../lib/emailTemplate.js";
 
 
 // create logout function
 export const logout = async (req, res) => {
   res.clearCookie("token").json({ message: "Logged out!" });
 };
+
+
+// Get Current User
+export const getCurrentUser = async (req, res) => {
+  const authHeader = req.headers.authorization;
+
+  console.log(authHeader);
+  
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Unauthorized: No token provided" });
+  }
+
+  const token = authHeader.split(" ")[2];
+
+  try {
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    console.log(decoded);
+    
+    // Find user by ID
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        name: true,
+        surname: true,
+        email: true,
+        role: true,
+      },
+    });
+
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({ user });
+  } catch (err) {
+    console.error(err);
+    res.status(401).json({ message: "Unauthorized: Invalid token" });
+  }
+};
+
 
 
 export const register = async (req, res) => {
@@ -22,7 +66,7 @@ export const register = async (req, res) => {
     password,
     idNumber,
     role,
-    courseId, // courseId passed from frontend
+    courseId, 
   } = req.body;
 
   try {
@@ -40,6 +84,12 @@ export const register = async (req, res) => {
       },
     });
 
+    if (existingUser && existingUser.verified) {
+      return res.status(400).json({
+        message: "A user with this email already exists!",
+      });
+    }
+
     if (existingUser && !existingUser.verified) {
       // If user exists but is unverified, delete and re-register
       await prisma.user.delete({
@@ -56,9 +106,18 @@ export const register = async (req, res) => {
       },
     });
 
-    if (existingUserByIdNumber) {
+    if (existingUserByIdNumber && existingUserByIdNumber.verified) {
       return res.status(400).json({
         message: "A user with this ID number already exists!",
+      });
+    }
+
+    if (existingUserByIdNumber && !existingUserByIdNumber.verified) {
+      // If user exists but is unverified, delete and re-register
+      await prisma.user.delete({
+        where: {
+          idNumber: idNumber,
+        },
       });
     }
 
@@ -66,7 +125,7 @@ export const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationLink = `${process.env.BASE_URL}/auth/verify-email?token=${verificationToken}`;
+    const verificationLink = `${process.env.FRONTEND_BASE_URL}/verify-email?token=${verificationToken}`;
 
     // Send welcome email with verification link
     const emailHtml = welcomeTemplate(verificationLink);
@@ -229,10 +288,13 @@ export const requestPasswordReset = async (req, res) => {
     });
 
     // Email content
-    const resetLink = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+    const resetLink = `${process.env.FRONTEND_BASE_URL}/reset-password/${resetToken}`;
 
-    // This will be replace by sending email
-    console.log(`Link to reset your password : ${resetLink}`);
+    console.log("resetLink", resetLink);
+    
+    // Send welcome email with verification link
+    const emailHtml = passwordChangeTemplate(resetLink);
+    await sendMail(email, 'Password change request - Change your password', '', emailHtml);
 
     res.json({ resetTokenLink: resetLink , message: "Password reset link sent to email!" });
   } catch (err) {
@@ -309,13 +371,15 @@ export const login = async (req, res) => {
     );
 
     const { password: userPassword, verificationToken, ...userInfo } = user;
-
-      res.status(200).json({
-        success: true,
-        token: `Bearer ${token}`,
-        user: userInfo
-      });
-
+    console.log("token", token);
+    
+    userInfo.token = token;
+    res.status(200).json({
+      success: true,
+      token: token, // Remove "Bearer " prefix here
+      user: userInfo
+    });
+    
 
   } catch (err) {
     console.log(err);

@@ -27,6 +27,8 @@ model User {
   email             String    @unique
   idNumber          String    @unique
   password          String
+  phoneNumber       String?
+  address           String?
   role              Role
   courseId          Int?      // single courseId field
   course            Course?   @relation(fields: [courseId], references: [id]) // Relationship with Course
@@ -53,6 +55,8 @@ model ResetPasswordToken {
 model Course {
   id         Int       @id @default(autoincrement())
   name       String
+  code       String    @unique
+  description String?
   modules    Module[]
   User User[]
 }
@@ -64,6 +68,7 @@ model Module {
   credits           Int
   completionStatus  String   @default("upcoming")
   grade             String? 
+  description       String?
   courseId          Int
   course            Course   @relation(fields: [courseId], references: [id])
   tests             Test[]  
@@ -84,14 +89,18 @@ model Test {
   testResults TestResult[] 
 }
 
+
+
 model Question {
-  id        Int      @id @default(autoincrement())
-  text      String
-  type      String   @default("multiple-choice") 
-  options   String[] 
-  answer    String  
-  testId    Int
-  test      Test     @relation(fields: [testId], references: [id])
+  id           Int      @id @default(autoincrement())
+  text         String
+  type         String   @default("multiple-choice") //  multiple-choice, true-false, short-answer
+  options      Json     // Store options in JSON format for flexibility
+  correctAnswer Int?    
+  points       Int      @default(1)                  
+  testId       Int
+  test         Test     @relation(fields: [testId], references: [id])
+  TestResultQuestion TestResultQuestion[]
 }
 
 model TestResult {
@@ -102,4 +111,14 @@ model TestResult {
   test      Test     @relation(fields: [testId], references: [id])
   studentId Int
   student   User     @relation(fields: [studentId], references: [id])
+  TestResultQuestion TestResultQuestion[]
+}
+
+model TestResultQuestion {
+  id          Int      @id @default(autoincrement())
+  testResultId Int
+  questionId  Int
+  isCorrect   Boolean
+  testResult  TestResult @relation(fields: [testResultId], references: [id])
+  question    Question @relation(fields: [questionId], references: [id])
 }
