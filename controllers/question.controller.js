@@ -1,7 +1,7 @@
 import prisma from "../lib/prisma.js";
 
 export const createQuestion = async (req, res) => {
-  const { text, type, options, answer, correctAnswer = 100 , testId } = req.body;
+  const { text, type, options, correctAnswer = 100 , testId } = req.body;
 
 
   try {
@@ -10,8 +10,7 @@ export const createQuestion = async (req, res) => {
         text,
         type,
         options,
-        answer,
-        testId,
+        testId : parseInt(testId),
         correctAnswer
       }
     });
