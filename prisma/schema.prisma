@@ -76,10 +76,10 @@ model Module {
 
 model Test {
   id          Int        @id @default(autoincrement())
-  name        String
+  title        String
   description String
   duration    Int        
-  dueDate     DateTime
+  scheduledFor     DateTime
   status      String     @default("upcoming") 
   moduleId    Int
   module      Module     @relation(fields: [moduleId], references: [id])
@@ -96,7 +96,8 @@ model Question {
   text         String
   type         String   @default("multiple-choice") //  multiple-choice, true-false, short-answer
   options      Json     // Store options in JSON format for flexibility
-  correctAnswer Int?    
+  correctAnswer Int? 
+  userAnswer    String?   
   points       Int      @default(1)                  
   testId       Int
   test         Test     @relation(fields: [testId], references: [id])
