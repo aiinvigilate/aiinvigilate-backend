@@ -3,7 +3,7 @@ import prisma from "../lib/prisma.js";
 
 
 export const createTest = async (req, res) => {
-    const { name, description, duration, dueDate, moduleId } = req.body;
+    const { title, description, duration , scheduledFor, moduleId } = req.body;
   
     if (!req.user || !req.user.id) {
       return res.status(401).json({ message: 'User is not authenticated' });
@@ -12,11 +12,11 @@ export const createTest = async (req, res) => {
     try {
       const test = await prisma.test.create({
         data: {
-          name,
+          title,
           description,
-          duration,
-          dueDate,
-          moduleId,  // Module ID comes from the request body
+          duration : parseInt(duration),  // Ensure duration is an integer
+          scheduledFor: new Date(scheduledFor),  // Convert to Date object
+          moduleId: parseInt(moduleId),           // Ensure moduleId is an integer
           creatorId: req.user.id,  // Creator ID is retrieved from the authenticated user
         },
       });
@@ -31,7 +31,10 @@ export const createTest = async (req, res) => {
 
 export const updateTest = async (req, res) => {
     const { id } = req.params;  
-    const { name, description, duration, dueDate, status } = req.body; 
+    const { title, description, duration, dueDate, status } = req.body; 
+
+    console.log(req.body);
+    
   
     try {
       const existingTestResults = await prisma.testResult.findMany({
@@ -44,9 +47,9 @@ export const updateTest = async (req, res) => {
   
       const updateData = {};
   
-      if (name) updateData.name = name;
+      if (title) updateData.title = title;
       if (description) updateData.description = description;
-      if (duration) updateData.duration = duration;
+      if (duration) updateData.duration = parseInt(duration);
       if (dueDate) updateData.dueDate = dueDate;
       if (status) updateData.status = status;
   
@@ -54,8 +57,6 @@ export const updateTest = async (req, res) => {
         where: { id: parseInt(id) },
         data: updateData,
       });
-  
-
       res.status(200).json({ updatedTest, message: 'Test updated successfully' });
     } catch (err) {
       console.error(err);
