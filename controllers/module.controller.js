@@ -2,11 +2,14 @@ import prisma from "../lib/prisma.js";
 
 // Create a new module
 export const createModule = async (req, res) => {
-  const { code, name, credits, courseId } = req.body;
+  const { code, name, description ,credits, courseId } = req.body;
+
+  const creditsNum = parseInt(credits, 10);
+  const courseIdNum = parseInt(courseId, 10);
 
   try {
     const module = await prisma.module.create({
-      data: { code, name, credits, courseId },
+      data: { code, name,  description , credits : creditsNum , courseId : courseIdNum },
     });
     res.status(201).json({ module, message: "Module created successfully" });
   } catch (err) {
@@ -40,9 +43,18 @@ export const getSingleModule = async (req, res) => {
       where: { id: parseInt(id) },
       include: {
         course: true,
-        tests: true,
+        tests: {
+          include: {
+            _count: {
+              select: { questions: true }, // Count questions in each test
+            },
+          },
+        },
       },
     });
+
+    console.log("module", module);
+    
 
     if (!module) {
       return res.status(404).json({ message: "Module not found" });
@@ -100,12 +112,22 @@ export const deleteModule = async (req, res) => {
 export const getUserModules = async (req, res) => {
     const userId = req.user.id; // Assuming user ID is in the token payload
   
+    console.log("req.user" , req.user);
+    
+
+
     try {
       const user = await prisma.user.findUnique({
         where: { id: userId },
         include: {
           course: {
-            include: { modules: true },
+            include: {
+              modules: {
+                include: {
+                  tests: true,  // Include tests for each module
+                },
+              },
+            },
           },
         },
       });
