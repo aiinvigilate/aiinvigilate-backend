@@ -8,10 +8,12 @@ const router = express.Router();
 
 router.get('/modules', authenticateUser ,  role.check('admin') , getAllModules);
 
-router.get("/:id", authenticateUser , role.check('student', 'lecturer', 'admin') ,  getSingleModule);
 
 // STUDENT AND LECTURER
 router.get("/user", authenticateUser , role.check('student', 'lecturer') ,  getUserModules);
+
+router.get("/:id", authenticateUser , role.check('student', 'lecturer', 'admin') ,  getSingleModule);
+
 
 // ONLY ADMIN
 router.post("/create",  authenticateUser ,  role.check('admin') ,  createModule);
