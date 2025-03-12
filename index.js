@@ -24,6 +24,12 @@ app.use(cookieParser());
 passportConfig(app);
 
 seedDB();
+
+app.get("/", (req, res) => {
+  res.send("Welcome to the E-Learning API");
+});
+
+
 app.use("/api/auth", authRoute);
 app.use("/api/course", courseRoute);
 app.use("/api/module", moduleRoute);
