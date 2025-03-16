@@ -16,7 +16,7 @@ router.get("/:id", authenticateUser , role.check('student', 'lecturer', 'admin')
 
 
 // ONLY ADMIN
-router.post("/create",  authenticateUser ,  role.check('admin') ,  createModule);
+router.post("/create",  authenticateUser ,  role.check('admin', 'lecturer') ,  createModule);
 router.put('/update/:id',  authenticateUser ,  role.check('admin') , updateModule);
 
 

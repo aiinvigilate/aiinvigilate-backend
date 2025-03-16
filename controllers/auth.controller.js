@@ -125,7 +125,7 @@ export const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationLink = `${process.env.FRONTEND_BASE_URL}/verify-email?token=${verificationToken}`;
+    const verificationLink = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
 
     // Send welcome email with verification link
     const emailHtml = welcomeTemplate(verificationLink);
@@ -288,7 +288,7 @@ export const requestPasswordReset = async (req, res) => {
     });
 
     // Email content
-    const resetLink = `${process.env.FRONTEND_BASE_URL}/reset-password/${resetToken}`;
+    const resetLink = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
 
     console.log("resetLink", resetLink);
     

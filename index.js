@@ -12,6 +12,7 @@ import testRoute from "./routes/test.route.js";
 import userRoute from "./routes/user.route.js";
 import passportConfig from './config/passport.js';
 import { seedDB } from './lib/seed.js';
+const PORT = process.env.PORT || 8800;
 
 
 dotenv.config();
@@ -28,6 +29,7 @@ seedDB();
 app.get("/", (req, res) => {
   res.send("Welcome to the E-Learning API");
 });
+
 
 
 app.use("/api/auth", authRoute);

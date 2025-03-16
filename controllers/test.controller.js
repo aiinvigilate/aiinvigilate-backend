@@ -139,6 +139,37 @@ export const getTestsByModule = async (req, res) => {
       });
     }
   };
+
+export const deleteTest = async (req, res) => {
+    const { id } = req.params; // Get testId from request params
+
+    try {
+        // Check if the test has been written (has test results)
+        const existingTestResults = await prisma.testResult.findMany({
+            where: { testId: parseInt(id) },
+        });
+
+        if (existingTestResults.length > 0) {
+            return res.status(400).json({ message: 'Cannot delete test as it has already been written.' });
+        }
+
+        // Delete related questions first
+        await prisma.question.deleteMany({
+            where: { testId: parseInt(id) },
+        });
+
+        // Delete the test
+        await prisma.test.delete({
+            where: { id: parseInt(id) },
+        });
+
+        res.status(200).json({ message: 'Test deleted successfully.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Failed to delete test.' });
+    }
+};
+
   
 
   export const getTestsByUser = async (req, res) => {
