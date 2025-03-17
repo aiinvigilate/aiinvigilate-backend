@@ -230,7 +230,7 @@ export const registerOfficer = async (req, res) => {
 
 
 export const verifyEmail = async (req, res) => {
-  const { token } = req.query;
+  const { token } = req.body;
 
   if (!token) {
     return res.status(400).json({ message: "Token is required." });
@@ -266,6 +266,9 @@ export const verifyEmail = async (req, res) => {
   }
 };
 
+function generateSixDigitCode() {
+  return Math.floor(100000 + Math.random() * 900000);
+}
 
 // Request Password Reset
 export const requestPasswordReset = async (req, res) => {
@@ -279,7 +282,7 @@ export const requestPasswordReset = async (req, res) => {
     await prisma.resetPasswordToken.deleteMany({ where: { userId: user.id } });
 
     // Generate a new token
-    const resetToken =  crypto.randomBytes(32).toString("hex");
+    const resetToken =   generateSixDigitCode().toString();
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 15 min expiry
 
     // Save to DB
@@ -287,16 +290,12 @@ export const requestPasswordReset = async (req, res) => {
       data: { userId: user.id, token: resetToken, expiresAt },
     });
 
-    // Email content
-    const resetLink = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
-
-    console.log("resetLink", resetLink);
     
     // Send welcome email with verification link
-    const emailHtml = passwordChangeTemplate(resetLink);
+    const emailHtml = passwordChangeTemplate(resetToken);
     await sendMail(email, 'Password change request - Change your password', '', emailHtml);
 
-    res.json({ resetTokenLink: resetLink , message: "Password reset link sent to email!" });
+    res.json({ resetTokenCode: resetToken , message: "Password reset link sent to email!" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Error requesting password reset!" });
