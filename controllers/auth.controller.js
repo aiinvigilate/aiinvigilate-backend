@@ -124,11 +124,10 @@ export const register = async (req, res) => {
     // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationLink = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
+    const verificationCode = generateSixDigitCode().toString();
 
     // Send welcome email with verification link
-    const emailHtml = welcomeTemplate(verificationLink);
+    const emailHtml = welcomeTemplate(verificationCode);
     await sendMail(email, 'Welcome to Our Service - Please Verify Your Email', '', emailHtml);
 
     // Create new user in the database
@@ -142,7 +141,7 @@ export const register = async (req, res) => {
         idNumber,
         role,
         courseId, // Connect the user to the course
-        verificationToken
+        verificationToken : verificationCode
       },
     });
 
@@ -241,7 +240,7 @@ export const verifyEmail = async (req, res) => {
 
   try {
     const user = await prisma.user.findUnique({
-      where: { verificationToken: token },
+      where: { verificationToken: token.toString() },
     });
 
     console.log(user);
@@ -306,8 +305,15 @@ export const requestPasswordReset = async (req, res) => {
 export const resetPassword = async (req, res) => {
   const { token, newPassword } = req.body;
 
+  console.log(req.body);
+  
+
   try {
     const resetEntry = await prisma.resetPasswordToken.findUnique({ where: { token } });
+
+
+    console.log(resetEntry);
+    
 
     if (!resetEntry || resetEntry.expiresAt < new Date()) {
       return res.status(400).json({ message: "Invalid or expired token!" });
