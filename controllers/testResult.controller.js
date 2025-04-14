@@ -1,40 +1,40 @@
 import prisma from "../lib/prisma.js";
-import { OpenAI } from 'openai';
+// import { OpenAI } from 'openai';
 
 // Set up the OpenAI client (Use your API Key from OpenAI)
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// const openai = new OpenAI({
+//   apiKey: process.env.OPENAI_API_KEY,
+// });
 
 // Function to grade short-answer questions using OpenAI
-const gradeShortAnswer = async (studentAnswer, correctAnswer) => {
-  try {
-    // Use ChatGPT to evaluate if the student's answer is correct
-    const response = await openai.chat.completions.create({
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a helpful assistant who evaluates short answers based on correctness.',
-        },
-        {
-          role: 'user',
-          content: `Does the following student answer match the correct answer?\nStudent Answer: "${studentAnswer}"\nCorrect Answer: "${correctAnswer}"`,
-        },
-      ],
-      model: 'gpt-4', // You can adjust the model if needed
-    });
+// const gradeShortAnswer = async (studentAnswer, correctAnswer) => {
+//   try {
+//     // Use ChatGPT to evaluate if the student's answer is correct
+//     const response = await openai.chat.completions.create({
+//       messages: [
+//         {
+//           role: 'system',
+//           content: 'You are a helpful assistant who evaluates short answers based on correctness.',
+//         },
+//         {
+//           role: 'user',
+//           content: `Does the following student answer match the correct answer?\nStudent Answer: "${studentAnswer}"\nCorrect Answer: "${correctAnswer}"`,
+//         },
+//       ],
+//       model: 'gpt-4', // You can adjust the model if needed
+//     });
 
-    // If the response from ChatGPT indicates correctness, return true; otherwise, false
+//     // If the response from ChatGPT indicates correctness, return true; otherwise, false
 
-    console.log(response.choices[0].message.content.toLowerCase().includes("correct"));
+//     console.log(response.choices[0].message.content.toLowerCase().includes("correct"));
     
 
-    return response.choices[0].message.content.toLowerCase().includes("correct");
-  } catch (error) {
-    console.error("Error grading short answer:", error);
-    return false; // Assume incorrect answer if there is an error
-  }
-};
+//     return response.choices[0].message.content.toLowerCase().includes("correct");
+//   } catch (error) {
+//     console.error("Error grading short answer:", error);
+//     return false; // Assume incorrect answer if there is an error
+//   }
+// };
 
 export const createTestResult = async (req, res) => {
     const { testId, studentId, questionResults } = req.body;
@@ -70,7 +70,7 @@ export const createTestResult = async (req, res) => {
   
               if (question.type === "short-answer") {
                 // Use ChatGPT to grade short-answer questions
-                correctedIsCorrect = await gradeShortAnswer(studentAnswer, question.correctAnswer);
+                // correctedIsCorrect = await gradeShortAnswer(studentAnswer, question.correctAnswer);
               } else {
                 // For other question types, assume the client has sent the correct result
                 correctedIsCorrect = result.isCorrect;
