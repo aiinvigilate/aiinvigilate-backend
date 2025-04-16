@@ -1,11 +1,15 @@
-// config.js
 import { v2 as cloudinary } from 'cloudinary';
 
-// Ensure Cloudinary is configured at the start of the app
+// Configure Cloudinary
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: 'dxq6q6ng5',
+  api_key: '383717525657889',
+  api_secret: 'ECDmKVb7gnMrN_FvFf-xYH6ZZK8',
 });
 
-console.log('Cloudinary configured successfully');
+// Verify Cloudinary connection
+cloudinary.api.ping()
+  .then(() => console.log('Cloudinary configured successfully'))
+  .catch((err) => console.error('Cloudinary configuration failed:', err));
+
+export default cloudinary;

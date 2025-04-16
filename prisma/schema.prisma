@@ -38,6 +38,7 @@ model User {
   tests             Test[]    @relation("TestCreator") // Tests created by lecturers
   testResults       TestResult[] // Results for students
 
+  images            Image[]      // Relation to Image model
   verificationToken String?   @unique   // New field for email verification token
   verified          Boolean   @default(false)  // New field to track email verification status
 }
@@ -87,6 +88,7 @@ model Test {
   creatorId   Int
   creator     User       @relation("TestCreator", fields: [creatorId], references: [id])
   testResults TestResult[] 
+  images      Image[]    // Opposite relation field for the `test` relation in `Image`
 }
 
 
@@ -94,7 +96,7 @@ model Test {
 model Question {
   id           Int      @id @default(autoincrement())
   text         String
-  type         String   @default("multiple-choice") //  multiple-choice, true-false, short-answer
+  type         String   @default("multiple-choice") //  multiple-choice, true-false
   options      Json     // Store options in JSON format for flexibility
   correctAnswer Int? 
   userAnswer    String?   
@@ -122,4 +124,16 @@ model TestResultQuestion {
   isCorrect   Boolean
   testResult  TestResult @relation(fields: [testResultId], references: [id])
   question    Question @relation(fields: [questionId], references: [id])
+}
+
+model Image {
+  id        Int      @id @default(autoincrement())
+  testId    Int
+  userId    Int      @unique
+  imageUrl  String
+  publicId  String
+  createdAt DateTime @default(now())
+
+  test      Test     @relation(fields: [testId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 }

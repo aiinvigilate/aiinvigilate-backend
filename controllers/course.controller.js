@@ -62,12 +62,15 @@ export const getSingleCourse = async (req, res) => {
 // Update a course
 export const updateCourse = async (req, res) => {
   const { id } = req.params;
-  const { name } = req.body;
+  const { name , code } = req.body;
+
+  console.log(req.body);
+  
 
   try {
     const course = await prisma.course.update({
       where: { id: parseInt(id) },
-      data: { name },
+      data: { name , code},
     });
     res.status(200).json({ course, message: "Course updated successfully" });
   } catch (err) {

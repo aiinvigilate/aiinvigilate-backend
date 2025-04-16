@@ -71,6 +71,10 @@ export const updateUser = async (req, res) => {
     try {
       const { id } = req.params;
       const { name, surname, email, password, phoneNumber, address } = req.body;
+
+
+      console.log(req.body);
+      
   
       let updatedData = { name, surname, email, phoneNumber, address };
   
