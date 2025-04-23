@@ -69,7 +69,7 @@ export const getUserById = async (req, res) => {
 
 export const updateUser = async (req, res) => {
     try {
-      const { id } = req.params;
+      const userId = req.user.id; // Get userId from the authenticated user
       const { name, surname, email, password, phoneNumber, address } = req.body;
 
 
@@ -84,7 +84,7 @@ export const updateUser = async (req, res) => {
       }
   
       const user = await prisma.user.update({
-        where: { id: parseInt(id) },
+        where: { id: parseInt(userId) },
         data: updatedData,
       });
   

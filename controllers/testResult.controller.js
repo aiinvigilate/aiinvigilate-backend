@@ -133,6 +133,7 @@ export const getTestResult = async (req, res) => {
         isCorrect: question.isCorrect,
       })),
     };
+    
 
     res.status(200).json(response);
   } catch (error) {
@@ -168,8 +169,6 @@ export const getTestHistory = async (req, res) => {
       const correctAnswers = result.TestResultQuestion.filter((q) => q.isCorrect).length;
       const totalQuestions = result.TestResultQuestion.length;
 
-      console.log(result)
-      
 
       return {
         testId: result.test.id,
@@ -178,7 +177,7 @@ export const getTestHistory = async (req, res) => {
         moduleCode: result.test.module.code,
         moduleName: result.test.module.name,
         date: result.submittedAt,
-        score: `${result.score}%`,
+        score: `${((result.score/totalQuestions)*100)}%`,
         correctAnswers: `${correctAnswers}/${totalQuestions} correct`,
       };
     });
@@ -250,6 +249,7 @@ export const getReport = async (req, res) => {
           text: question.text,
           options: question.options,
           points: question.points,
+          correctAnswer: question.correctAnswer,
           studentAnswer: studentAnswer !== undefined ? studentAnswer : "No answer provided",
         };
       }),

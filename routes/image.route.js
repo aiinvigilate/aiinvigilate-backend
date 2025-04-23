@@ -70,6 +70,7 @@ async (req, res) => {
         const image = await prisma.image.upsert({
           where: { userId:  parseInt(userId)  },
           update: {
+            testId: parseInt(testId),
             imageUrl: uploadedResult.secure_url,
             publicId: uploadedResult.public_id,
           },
