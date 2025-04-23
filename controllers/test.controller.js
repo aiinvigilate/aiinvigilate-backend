@@ -76,6 +76,7 @@ export const getTest = async (req, res) => {
           module: true, 
           creator: true, 
           questions: true, 
+          testResults: true,
         },
       });
   

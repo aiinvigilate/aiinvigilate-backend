@@ -61,21 +61,30 @@ async (req, res) => {
   const userId = req.user.id;
   const { testId } = req.body;
 
-      try {
-        const uploadedResult = await  cloudinary.uploader.upload(req.file.path, { folder: 'users/face' })
-        console.log(uploadedResult);
-            // Save the image URL to the database
-    const image = await prisma.image.create({
-      data: {
-        testId: parseInt(testId),
-        userId:userId,
-        imageUrl: uploadedResult.secure_url,
-        publicId: uploadedResult.public_id,
-      },
-    });
+  console.log("userId" , userId);
   
 
-    res.status(200).json({ message: 'First image uploaded successfully.', image });
+      try {
+        const uploadedResult = await cloudinary.uploader.upload(req.file.path, { folder: 'users/face' });
+
+        const image = await prisma.image.upsert({
+          where: { userId:  parseInt(userId)  },
+          update: {
+            imageUrl: uploadedResult.secure_url,
+            publicId: uploadedResult.public_id,
+          },
+          create: {
+            testId: parseInt(testId),
+            userId: parseInt(userId),
+            imageUrl: uploadedResult.secure_url,
+            publicId: uploadedResult.public_id,
+          },
+        });
+
+        console.log("image" , image);
+        
+  
+      res.status(200).json({ message: 'First image uploaded successfully.', image });
 
       } catch (error) {
         console.error(error);
@@ -132,6 +141,7 @@ router.post('/compare', authenticateUser, upload.single('image'), async (req, re
     res.status(500).json({ error: 'Failed to compare images.', details: error.message });
   }
 });
+
 router.delete('/delete', authenticateUser, deleteImage);
 
 export default router;

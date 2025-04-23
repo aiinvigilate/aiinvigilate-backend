@@ -37,77 +37,224 @@ import prisma from "../lib/prisma.js";
 // };
 
 export const createTestResult = async (req, res) => {
-    const { testId, studentId, questionResults } = req.body;
-  
-    let totalScore = 0; // Initialize total score for this test result
-  
-    try {
-      // Create the test result in the database
-      const newTestResult = await prisma.testResult.create({
-        data: {
-          score: totalScore, // Start with a default score of 0
-          testId,
-          studentId,
-          TestResultQuestion: {
-            create: await Promise.all(questionResults.map(async (result) => {
-              const { questionId, studentAnswer } = result;
-              const question = await prisma.question.findUnique({
-                where: { id: questionId },
-              });
-  
-              // Check if question exists
-              if (!question) {
-                console.error(`Question with ID ${questionId} not found.`);
-                return {
-                  questionId,
-                  isCorrect: false,
-                  points: 0,
-                };
-              }
-  
-              let correctedIsCorrect = false; // Default to false (incorrect)
-              let points = 0; // Default points for incorrect answers
-  
-              if (question.type === "short-answer") {
-                // Use ChatGPT to grade short-answer questions
-                // correctedIsCorrect = await gradeShortAnswer(studentAnswer, question.correctAnswer);
-              } else {
-                // For other question types, assume the client has sent the correct result
-                correctedIsCorrect = result.isCorrect;
-              }
-  
-              if (correctedIsCorrect) {
-                points = question.points; // Award points based on the question's assigned points
-                totalScore += points; // Increment total score by the points of the question
-              }
-  
-              return {
-                questionId,
-                isCorrect: correctedIsCorrect,
-                points, // Include the points in the result for reference
-              };
-            })), 
+  const { testId, studentId, answers } = req.body; // `answers` is the object with question IDs and selected answers
+  let totalScore = 0;
+
+  try {
+    // Fetch all questions for the given test
+    const questions = await prisma.question.findMany({
+      where: { testId: parseInt(testId) },
+    });
+
+    if (!questions || questions.length === 0) {
+      return res.status(404).json({ error: 'No questions found for this test.' });
+    }
+
+    // Create an array to store individual question results
+    const testResultQuestions = [];
+
+    // Iterate through the questions and calculate the score
+    questions.forEach((question) => {
+      const userAnswer = answers[question.id]; // Get the student's answer for this question
+      const isCorrect = userAnswer === question.correctAnswer; // Check if the answer is correct
+
+      // Add points to the total score if the answer is correct
+      if (isCorrect) {
+        totalScore += question.points;
+      }
+
+      // Add the question result to the array
+      testResultQuestions.push({
+        questionId: question.id,
+        isCorrect,
+      });
+    });
+
+    // Save the test result in the database
+    const testResult = await prisma.testResult.create({
+      data: {
+        testId: parseInt(testId),
+        studentId: parseInt(studentId),
+        score: totalScore,
+      },
+    });
+
+    // Save the individual question results in the database
+    const testResultQuestionRecords = testResultQuestions.map((result) => ({
+      testResultId: testResult.id,
+      questionId: result.questionId,
+      isCorrect: result.isCorrect,
+    }));
+
+    await prisma.testResultQuestion.createMany({
+      data: testResultQuestionRecords,
+    });
+
+    // Return the test result and individual question results
+    res.status(201).json({
+      message: 'Test result created successfully.',
+      testResult,
+      testResultQuestions,
+    });
+  } catch (error) {
+    console.error('Error creating test result:', error);
+    res.status(500).json({ error: 'Failed to create test result.' });
+  }
+};
+
+export const getTestResult = async (req, res) => {
+  const { testId } = req.params; // Get testId from request parameters
+  const studentId = req.user.id; // Get studentId from the authenticated user
+
+  try {
+    // Fetch the test result for the given testId and studentId
+    const testResult = await prisma.testResult.findFirst({
+      where: {
+        testId: parseInt(testId),
+        studentId: parseInt(studentId),
+      },
+      include: {
+        TestResultQuestion: true, // Include related question results
+      },
+    });
+
+    if (!testResult) {
+      return res.status(404).json({ message: "Test result not found." });
+    }
+
+    // Format the response
+    const response = {
+      score: testResult.score,
+      submittedAt: testResult.submittedAt,
+      testResultQuestions: testResult.TestResultQuestion.map((question) => ({
+        questionId: question.questionId,
+        isCorrect: question.isCorrect,
+      })),
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error("Error fetching test result:", error);
+    res.status(500).json({ error: "Failed to fetch test result." });
+  }
+};
+
+
+export const getTestHistory = async (req, res) => {
+  const studentId = req.user.id; // Get the authenticated student's ID
+
+  try {
+    // Fetch test results for the student
+    const testResults = await prisma.testResult.findMany({
+      where: { studentId: studentId },
+      include: {
+        test: {
+          include: {
+            module: true, // Include the module details
           },
         },
-      });
-  
-      // Update the total score for the test result
-      await prisma.testResult.update({
-        where: { id: newTestResult.id },
-        data: { score: totalScore }, // Update the score after grading
-      });
-  
-      res.status(201).json({
-        message: 'Test result created successfully',
-        testResult: newTestResult,
-      });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({
-        message: 'Error creating test result',
-        error: error.message,
-      });
+        TestResultQuestion: true, // Include question results to calculate correct answers
+      },
+    });
+
+    if (!testResults || testResults.length === 0) {
+      return res.status(404).json({ message: "No test history found for this student." });
     }
-  };
-  
-  
+
+    // Format the response
+    const history = testResults.map((result) => {
+      const correctAnswers = result.TestResultQuestion.filter((q) => q.isCorrect).length;
+      const totalQuestions = result.TestResultQuestion.length;
+
+      return {
+        testTitle: result.test.title,
+        testDescription: result.test.description,
+        moduleCode: result.test.module.code,
+        moduleName: result.test.module.name,
+        date: result.submittedAt,
+        score: `${result.score}%`,
+        correctAnswers: `${correctAnswers}/${totalQuestions} correct`,
+      };
+    });
+
+    res.status(200).json(history);
+  } catch (error) {
+    console.error("Error fetching test history:", error);
+    res.status(500).json({ error: "Failed to fetch test history." });
+  }
+};
+
+
+export const getReport = async (req, res) => {
+  const { testId, studentId } = req.params; // Get testId and studentId from request parameters
+
+  try {
+    // Fetch the test result for the given testId and studentId
+    const testResult = await prisma.testResult.findFirst({
+      where: {
+        testId: parseInt(testId),
+        studentId: parseInt(studentId),
+      },
+      include: {
+        student: {
+          include: {
+            course: true, // Include course details
+          },
+        },
+        test: {
+          include: {
+            module: true, // Include module details
+            questions: true, // Include questions for the test
+          },
+        },
+        TestResultQuestion: {
+          include: {
+            question: true, // Include question details for each result
+          },
+        },
+      },
+    });
+
+    if (!testResult) {
+      return res.status(404).json({ message: "Test result not found." });
+    }
+
+    // Format the response
+    const report = {
+      student: {
+        name: testResult.student.name,
+        surname: testResult.student.surname,
+        idNumber: testResult.student.idNumber,
+      },
+      course: {
+        name: testResult.student.course?.name || "N/A",
+        code: testResult.student.course?.code || "N/A",
+      },
+      module: {
+        name: testResult.test.module.name,
+        code: testResult.test.module.code,
+      },
+      test: {
+        title: testResult.test.title,
+        scheduledFor: testResult.test.scheduledFor,
+      },
+      questions: testResult.test.questions.map((question) => {
+        const studentAnswer = testResult.TestResultQuestion.find(
+          (resultQuestion) => resultQuestion.questionId === question.id
+        )?.question.userAnswer;
+
+        return {
+          text: question.text,
+          options: question.options,
+          points: question.points,
+          studentAnswer: studentAnswer || "No answer provided",
+        };
+      }),
+    };
+
+    res.status(200).json(report);
+  } catch (error) {
+    console.error("Error fetching report:", error);
+    res.status(500).json({ error: "Failed to fetch report." });
+  }
+};

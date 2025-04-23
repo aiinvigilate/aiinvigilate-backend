@@ -124,7 +124,11 @@ export const getUserModules = async (req, res) => {
             include: {
               modules: {
                 include: {
-                  tests: true,  // Include tests for each module
+                  tests: {
+                    include: {
+                      testResults: true, // Include test results for each test
+                    },
+                  },
                 },
               },
             },
