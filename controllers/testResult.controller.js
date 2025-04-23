@@ -55,8 +55,8 @@ export const createTestResult = async (req, res) => {
 
     // Iterate through the questions and calculate the score
     questions.forEach((question) => {
-      const userAnswer = answers[question.id]; // Get the student's answer for this question
-      const isCorrect = userAnswer === question.correctAnswer; // Check if the answer is correct
+      const studentAnswer = answers[question.id]; // Get the student's answer for this question
+      const isCorrect = studentAnswer === question.correctAnswer; // Check if the answer is correct
 
       // Add points to the total score if the answer is correct
       if (isCorrect) {
@@ -67,6 +67,7 @@ export const createTestResult = async (req, res) => {
       testResultQuestions.push({
         questionId: question.id,
         isCorrect,
+        studentAnswer
       });
     });
 
@@ -84,6 +85,7 @@ export const createTestResult = async (req, res) => {
       testResultId: testResult.id,
       questionId: result.questionId,
       isCorrect: result.isCorrect,
+      studentAnswer: result.studentAnswer, // Save the student's answer
     }));
 
     await prisma.testResultQuestion.createMany({
@@ -166,7 +168,11 @@ export const getTestHistory = async (req, res) => {
       const correctAnswers = result.TestResultQuestion.filter((q) => q.isCorrect).length;
       const totalQuestions = result.TestResultQuestion.length;
 
+      console.log(result)
+      
+
       return {
+        testId: result.test.id,
         testTitle: result.test.title,
         testDescription: result.test.description,
         moduleCode: result.test.module.code,
@@ -186,7 +192,8 @@ export const getTestHistory = async (req, res) => {
 
 
 export const getReport = async (req, res) => {
-  const { testId, studentId } = req.params; // Get testId and studentId from request parameters
+  const { testId } = req.params; // Get testId and studentId from request parameters
+  const studentId = req.user.id; // Get studentId from the authenticated user
 
   try {
     // Fetch the test result for the given testId and studentId
@@ -207,11 +214,7 @@ export const getReport = async (req, res) => {
             questions: true, // Include questions for the test
           },
         },
-        TestResultQuestion: {
-          include: {
-            question: true, // Include question details for each result
-          },
-        },
+        TestResultQuestion: true, // Include question results
       },
     });
 
@@ -241,13 +244,13 @@ export const getReport = async (req, res) => {
       questions: testResult.test.questions.map((question) => {
         const studentAnswer = testResult.TestResultQuestion.find(
           (resultQuestion) => resultQuestion.questionId === question.id
-        )?.question.userAnswer;
+        )?.studentAnswer;
 
         return {
           text: question.text,
           options: question.options,
           points: question.points,
-          studentAnswer: studentAnswer || "No answer provided",
+          studentAnswer: studentAnswer !== undefined ? studentAnswer : "No answer provided",
         };
       }),
     };

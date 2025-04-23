@@ -15,7 +15,7 @@ router.get("/test-result/:testId", authenticateUser, getTestResult);
 
 router.get("/history", authenticateUser, getTestHistory);
 
-router.get("/report/:testId/:studentId", authenticateUser, getReport);
+router.get("/report/:testId", authenticateUser, getReport);
 
 
 // router.delete("/delete/:id",  authenticateUser ,  role.check('lecturer') ,  deleteQuestion);

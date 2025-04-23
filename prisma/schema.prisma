@@ -122,6 +122,7 @@ model TestResultQuestion {
   testResultId Int
   questionId  Int
   isCorrect   Boolean
+  studentAnswer Int? 
   testResult  TestResult @relation(fields: [testResultId], references: [id])
   question    Question @relation(fields: [questionId], references: [id])
 }
