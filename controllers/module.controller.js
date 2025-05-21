@@ -150,3 +150,45 @@ export const getUserModules = async (req, res) => {
     }
   };
   
+
+export const getUserModulesById = async (req, res) => {
+    const { userId } = req.params;// Assuming user ID is in the token payload
+  
+    // console.log("req.user" , req.user);
+    
+
+
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: parseInt(userId) },
+        include: {
+          course: {
+            include: {
+              modules: {
+                include: {
+                  tests: {
+                    include: {
+                      testResults: true, // Include test results for each test
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+  
+      if (!user || !user.course) {
+        return res.status(404).json({ message: "No course found for this user!" });
+      }
+  
+      res.status(200).json({
+        modules: user.course.modules,
+        message: "Modules fetched successfully!",
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: "Failed to fetch modules!" });
+    }
+  };
+  

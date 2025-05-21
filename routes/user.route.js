@@ -1,5 +1,5 @@
 import express from "express";
-import { getAllUsers, toggleUserBlock, updateUser } from "../controllers/user.controller.js";
+import { getAllUsers, getUserById, toggleUserBlock, updateUser } from "../controllers/user.controller.js";
 import { role } from "../middleware/role.js";
 import auth from "../middleware/auth.js";
 import { authenticateUser } from "../middleware/authMiddleware.js";
@@ -7,7 +7,7 @@ import { authenticateUser } from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 router.get("/users", authenticateUser , role.check('admin') , getAllUsers);
-// router.put("/update/:id", updateUser);
+router.get("/:userId", authenticateUser , getUserById);
 // router.put("/update/:id", updateUser);
 router.put("/update", authenticateUser , updateUser);
 
