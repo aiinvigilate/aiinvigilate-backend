@@ -94,8 +94,6 @@ export const updateUser = async (req, res) => {
         user: user
       });
 
-
-
     } catch (error) {
 
         console.log(error);
