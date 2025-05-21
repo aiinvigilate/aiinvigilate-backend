@@ -46,6 +46,6 @@ app.use("/api/user", userRoute);
 app.use("/api/image", imageRoute);
 
 
-app.listen(8800, () => {
-  console.log("Server is running!");
+app.listen(PORT, () => {
+  console.log("Server is running! at " , PORT);
 });
