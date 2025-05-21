@@ -41,6 +41,7 @@ model User {
   images            Image[]      // Relation to Image model
   verificationToken String?   @unique   // New field for email verification token
   verified          Boolean   @default(false)  // New field to track email verification status
+  isUserBlock       Boolean   @default(false)
 }
 
 

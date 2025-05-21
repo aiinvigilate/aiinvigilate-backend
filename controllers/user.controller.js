@@ -113,3 +113,54 @@ export const deleteUser = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+
+// Block and Unblock User
+
+// Block or unblock a user
+export const toggleUserBlock = async (req, res) => {
+  try {
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ message: 'User ID is required' });
+    }
+
+    // First check if the user exists
+    const user = await prisma.user.findUnique({
+      where: { id: parseInt(userId) },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Toggle the isUserBlock status
+    const updatedUser = await prisma.user.update({
+      where: { id: parseInt(userId) },
+      data: {
+        isUserBlock: !user.isUserBlock
+      },
+    });
+
+    const action = updatedUser.isUserBlock ? 'blocked' : 'unblocked';
+    
+    res.status(200).json({
+      message: `User successfully ${action}`,
+      status: "success",
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        name: updatedUser.name,
+        surname: updatedUser.surname,
+        isUserBlock: updatedUser.isUserBlock
+      }
+    });
+
+  } catch (error) {
+    res.status(500).json({ 
+      error: error.message,
+      status: "error"
+    });
+  }
+};
