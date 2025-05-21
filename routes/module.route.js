@@ -1,5 +1,5 @@
 import express from "express";
-import { createModule, getAllModules, getSingleModule, getUserModules, updateModule } from "../controllers/module.controller.js";
+import { createModule, getAllModules, getSingleModule, getUserModules, getUserModulesById, updateModule } from "../controllers/module.controller.js";
 import { authenticateUser } from "../middleware/authMiddleware.js";
 import { role } from "../middleware/role.js";
 
@@ -11,6 +11,9 @@ router.get('/modules', authenticateUser ,  role.check('admin') , getAllModules);
 
 // STUDENT AND LECTURER
 router.get("/user", authenticateUser , role.check('student', 'lecturer') ,  getUserModules);
+
+
+router.get("/user/:userId", authenticateUser , role.check('admin') ,  getUserModulesById);
 
 router.get("/:id", authenticateUser , role.check('student', 'lecturer', 'admin') ,  getSingleModule);
 
