@@ -277,6 +277,13 @@ export const requestPasswordReset = async (req, res) => {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) return res.status(400).json({ message: "User not found!" });
 
+     // CHECK IF THE USER IS BLOCKED
+    if (user.isUserBlock) {
+      return res.status(403).json({ 
+        message: "Your account has been blocked. Please contact the administrator." 
+      });
+    }
+
     // Check if a reset token already exists and delete it
     await prisma.resetPasswordToken.deleteMany({ where: { userId: user.id } });
 
@@ -350,6 +357,14 @@ export const login = async (req, res) => {
     });
 
     if (!user) return res.status(400).json({ message: "Invalid Credentials!" });
+
+    // CHECK IF THE USER IS BLOCKED
+    if (user.isUserBlock) {
+      return res.status(403).json({ 
+        message: "Your account has been blocked. Please contact the administrator." 
+      });
+    }
+
 
     // CHECK IF THE USER IS VERIFIED
     if (!user.verified) {
